@@ -2,11 +2,4 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional: smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  @apply bg-white text-gray-900;
-}
+/* Custom global styles here if needed */
