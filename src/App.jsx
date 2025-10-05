@@ -297,19 +297,21 @@ const Dashboard = ({ currentUser, onLogout }) => {
   );
 };
 
-// --- MAIN APP ---
+// --- Main App Component ---
 const App = () => {
-  const [currentPage, setCurrentPage] = useState('login');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentPage, setCurrentPage] = React.useState('login');
+  const [currentUser, setCurrentUser] = React.useState(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const user = localStorage.getItem('betphoenix_currentUser');
-    if (user) { setCurrentUser(user); setCurrentPage('dashboard'); }
+    if (user) {
+      setCurrentUser(user);
+      setCurrentPage('dashboard');
+    }
   }, []);
 
-  const handleLogin = username => {
-    setCurrentUser
-(username);
+  const handleLogin = (username) => {
+    setCurrentUser(username);
     localStorage.setItem('betphoenix_currentUser', username);
     setCurrentPage('dashboard');
   };
@@ -320,9 +322,7 @@ const App = () => {
     setCurrentPage('login');
   };
 
-  const navigate = (page) => {
-    setCurrentPage(page);
-  };
+  const navigate = (page) => setCurrentPage(page);
 
   return (
     <>
@@ -333,6 +333,5 @@ const App = () => {
   );
 };
 
-// --- RENDER ---
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+// --- EXPORT ---
+export default App;
