@@ -2,10 +2,21 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}"
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        brand: {
+          DEFAULT: '#1a73e8',
+          light: '#4dabf7',
+          dark: '#174ea6',
+        },
+      },
+    },
   },
   plugins: [],
-}
+};
