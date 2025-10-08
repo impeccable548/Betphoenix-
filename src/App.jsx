@@ -577,20 +577,30 @@ const App = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('bp_currentUser');
-    if (u) { setUser(u); setPage('dashboard'); }
+    // ✅ Only run this on the client/browser
+    if (typeof window !== 'undefined') {
+      const u = localStorage.getItem('bp_currentUser');
+      if (u) {
+        setUser(u);
+        setPage('dashboard');
+      }
+    }
   }, []);
 
   const handleLogin = (username) => {
-    setUser(username);
-    localStorage.setItem('bp_currentUser', username);
-    setPage('dashboard');
+    if (typeof window !== 'undefined') {
+      setUser(username);
+      localStorage.setItem('bp_currentUser', username);
+      setPage('dashboard');
+    }
   };
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('bp_currentUser');
-    setPage('landing');
+    if (typeof window !== 'undefined') {
+      setUser(null);
+      localStorage.removeItem('bp_currentUser');
+      setPage('landing');
+    }
   };
 
   return (
@@ -603,4 +613,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
