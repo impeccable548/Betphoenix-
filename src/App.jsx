@@ -261,20 +261,42 @@ const Dashboard = ({ user, onLogout }) => {
   const [page, setPage] = useState('matches');
   const [sidebar, setSidebar] = useState(false);
   const [data, setData] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('bp_users') || '{}');
-    if (users[user]) setData(users[user]);
-  }, [user]);
+    setMounted(true);
 
-  const updateData = (newData) => {
-    const users = JSON.parse(localStorage.getItem('bp_users') || '{}');
-    users[user] = newData;
-    localStorage.setItem('bp_users', JSON.stringify(users));
-    setData(newData);
-  };
+    if (typeof window !== 'undefined') {
+      try {
+        const users = JSON.parse(localStorage.getItem('bp_users') || '{}');
+        if (users[user]) {
+          setData(users[user]);
+        } else {
+          console.warn('No user found, resetting...');
+          localStorage.removeItem('bp_currentUser');
+          onLogout();
+        }
+      } catch (err) {
+        console.error('Corrupted localStorage data:', err);
+        localStorage.removeItem('bp_users');
+        onLogout();
+      }
+    }
+  }, [user, onLogout]);
 
-  if (!data) return null;
+  if (!mounted)
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-yellow-500">
+        Initializing Dashboard...
+      </div>
+    );
+
+  if (!data)
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-yellow-500">
+        Loading your data...
+      </div>
+    );
 
   const menu = [
     { id: 'matches', icon: <ActivityIcon />, label: 'Live Matches' },
@@ -288,18 +310,52 @@ const Dashboard = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-yellow-900 text-white">
       <nav className="fixed top-0 w-full bg-black/80 backdrop-blur-md border-b border-yellow-500/30 z-50 px-4 h-16 flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <button onClick={() => setSidebar(!sidebar)} className="lg:hidden text-yellow-500"><div className="w-6 h-6"><MenuIcon /></div></button>
+          <button onClick={() => setSidebar(!sidebar)} className="lg:hidden text-yellow-500">
+            <div className="w-6 h-6"><MenuIcon /></div>
+          </button>
           <div className="w-8 h-8 text-yellow-500"><ZapIcon /></div>
           <span className="text-xl font-bold text-yellow-500">BetPhoenix</span>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-lg font-bold text-black">₦{data.balance.toFixed(2)}</div>
-          <button onClick={onLogout} className="px-4 py-2 bg-red-500 rounded-lg">Logout</button>
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-lg font-bold text-black">
+            ₦{data.balance?.toFixed(2) || '0.00'}
+          </div>
+          <button onClick={onLogout} className="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600">
+            Logout
+          </button>
         </div>
       </nav>
 
       <aside className={`fixed left-0 top-16 h-full w-64 bg-black/90 border-r border-yellow-500/30 transform transition-transform z-40 ${sidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 space-y-2">
+          {menu.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id)}
+              className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg transition ${
+                page === item.id
+                  ? 'bg-yellow-500 text-black'
+                  : 'hover:bg-yellow-600/20 text-yellow-400'
+              }`}
+            >
+              <div className="w-5 h-5">{item.icon}</div>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {/* Main content area */}
+      <main className="pt-20 px-4">
+        {page === 'matches' && <div>Matches Page</div>}
+        {page === 'wallet' && <div>Wallet Section</div>}
+        {page === 'games' && <div>Games Section</div>}
+        {page === 'history' && <div>History Section</div>}
+        {page === 'settings' && <div>Settings Section</div>}
+      </main>
+    </div>
+  );
+};
           {menu.map(m => (
             <button key={m.id} onClick={() => { setPage(m.id); setSidebar(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${page === m.id ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' : 'text-yellow-500 hover:bg-yellow-500/10'}`}>
               <div className="w-5 h-5">{m.icon}</div>
