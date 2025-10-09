@@ -263,6 +263,21 @@ const Dashboard = ({ user, onLogout }) => {
   const [data, setData] = useState(null);
   const [mounted, setMounted] = useState(false);
 
+  // ✅ Added updateData function
+  const updateData = (newData) => {
+    setData((prev) => {
+      const updated = { ...prev, ...newData };
+
+      if (typeof window !== 'undefined') {
+        const users = JSON.parse(localStorage.getItem('bp_users') || '{}');
+        users[user] = updated;
+        localStorage.setItem('bp_users', JSON.stringify(users));
+      }
+
+      return updated;
+    });
+  };
+
   useEffect(() => {
     setMounted(true);
 
@@ -328,7 +343,6 @@ const Dashboard = ({ user, onLogout }) => {
 
       <aside className={`fixed left-0 top-16 h-full w-64 bg-black/90 border-r border-yellow-500/30 transform transition-transform z-40 ${sidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 space-y-2">
-          
           {menu.map(m => (
             <button key={m.id} onClick={() => { setPage(m.id); setSidebar(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${page === m.id ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' : 'text-yellow-500 hover:bg-yellow-500/10'}`}>
               <div className="w-5 h-5">{m.icon}</div>
