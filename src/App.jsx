@@ -328,34 +328,7 @@ const Dashboard = ({ user, onLogout }) => {
 
       <aside className={`fixed left-0 top-16 h-full w-64 bg-black/90 border-r border-yellow-500/30 transform transition-transform z-40 ${sidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-4 space-y-2">
-          {menu.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setPage(item.id)}
-              className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg transition ${
-                page === item.id
-                  ? 'bg-yellow-500 text-black'
-                  : 'hover:bg-yellow-600/20 text-yellow-400'
-              }`}
-            >
-              <div className="w-5 h-5">{item.icon}</div>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {/* Main content area */}
-      <main className="pt-20 px-4">
-        {page === 'matches' && <div>Matches Page</div>}
-        {page === 'wallet' && <div>Wallet Section</div>}
-        {page === 'games' && <div>Games Section</div>}
-        {page === 'history' && <div>History Section</div>}
-        {page === 'settings' && <div>Settings Section</div>}
-      </main>
-    </div>
-  );
-};
+          
           {menu.map(m => (
             <button key={m.id} onClick={() => { setPage(m.id); setSidebar(false); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${page === m.id ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' : 'text-yellow-500 hover:bg-yellow-500/10'}`}>
               <div className="w-5 h-5">{m.icon}</div>
