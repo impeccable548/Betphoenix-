@@ -641,5 +641,22 @@ const App = () => {
     </div>
   );
 };
-
+// Debug Overlay for Mobile
+if (typeof window !== 'undefined') {
+  window.onerror = function (message, source, lineno, colno, error) {
+    const errorBox = document.createElement('div');
+    errorBox.style.position = 'fixed';
+    errorBox.style.bottom = '0';
+    errorBox.style.left = '0';
+    errorBox.style.width = '100%';
+    errorBox.style.background = 'rgba(255,0,0,0.9)';
+    errorBox.style.color = 'white';
+    errorBox.style.padding = '10px';
+    errorBox.style.fontSize = '14px';
+    errorBox.style.zIndex = '9999';
+    errorBox.style.whiteSpace = 'pre-wrap';
+    errorBox.innerText = `🔥 JS Error:\n${message}\nLine: ${lineno}\nSource: ${source}`;
+    document.body.appendChild(errorBox);
+  };
+}
 export default App;
