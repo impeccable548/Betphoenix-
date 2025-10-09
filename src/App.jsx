@@ -364,9 +364,152 @@ const Dashboard = ({ user, onLogout }) => {
 };
 // Matches
 const Matches = ({ data, updateData }) => {
+  const [matches, setMatches] = useState([]);
+  const [bets, setBets] = useState({});
+  const [notif, setNotif] = useState(null);
+
+  useEffect(() => {
+    const teamsList = [
+      'Man United', 'Liverpool', 'Real Madrid', 'Barcelona', 'Bayern', 'Dortmund',
+      'Chelsea', 'Arsenal', 'PSG', 'Marseille', 'Juventus', 'Milan',
+      'Man City', 'Tottenham', 'Inter', 'Napoli', 'Atletico', 'Sevilla', 'Leicester', 'Everton'
+    ];
+
+    // Shuffle teams
+    const shuffledTeams = [...teamsList].sort(() => 0.5 - Math.random());
+
+    // Pair teams into 10 matches
+    const m = [];
+    for (let i = 0; i < 20; i += 2) {
+      m.push({
+        id: i / 2,
+        home: shuffledTeams[i],
+        away: shuffledTeams[i + 1],
+        homeOdds: (1.5 + Math.random()).toFixed(2),
+        awayOdds: (1.5 + Math.random()).toFixed(2),
+        drawOdds: (2.5 + Math.random()).toFixed(2),
+      });
+    }
+
+    setMatches(m);
+
+    // Update odds every 5 seconds
+    const interval = setInterval(() => {
+      setMatches(prev =>
+        prev.map(match => {
+          const updateOdd = odd => (parseFloat(odd) + (Math.random() - 0.5) * 0.1).toFixed(2);
+          return {
+            ...match,
+            homeOdds: updateOdd(match.homeOdds),
+            awayOdds: updateOdd(match.awayOdds),
+            drawOdds: updateOdd(match.drawOdds),
+          };
+        })
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const bet = (id, team, odds) => {
+    const amt = parseFloat(bets[id] || 0);
+    if (!amt || amt <= 0 || amt > data.balance) {
+      setNotif({ msg: 'Invalid amount', type: 'error' });
+      setTimeout(() => setNotif(null), 2000);
+      return;
+    }
+
+    const win = Math.random() < 1 / parseFloat(odds);
+    const payout = amt * parseFloat(odds);
+    const newBal = win ? data.balance + payout - amt : data.balance - amt;
+    const rec = {
+      id: Date.now(),
+      team,
+      amt,
+      odds: parseFloat(odds),
+      result: win ? 'Won' : 'Lost',
+      payout: win ? payout : 0,
+      time: new Date().toLocaleString(),
+    };
+
+    // Update parent data
+    updateData({
+      ...data,
+      balance: newBal,
+      history: [rec, ...data.history],
+      transactions: [rec, ...data.transactions],
+    });
+
+    setBets({ ...bets, [id]: '' });
+    setNotif({
+      msg: win ? `Won ₦${payout.toFixed(2)}! 🎉` : `Lost ₦${amt.toFixed(2)} 😢`,
+      type: win ? 'success' : 'error',
+    });
+    setTimeout(() => setNotif(null), 2000);
+  };
+
   return (
-    <div className="text-yellow-400 text-2xl font-bold">
-      Matches Page Placeholder ⚽🔥
+    <div>
+      {notif && (
+        <div
+          className={`fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${
+            notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white`}
+        >
+          {notif.msg}
+        </div>
+      )}
+
+      <h2 className="text-3xl font-bold mb-6 text-yellow-400">Live Matches</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {matches.map(m => (
+          <div
+            key={m.id}
+            className="bg-gradient-to-br from-purple-900/50 to-black border border-yellow-500/30 rounded-xl p-6"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xl font-bold">{m.home}</span>
+              <span className="text-gray-500">VS</span>
+              <span className="text-xl font-bold">{m.away}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <button
+                onClick={() => bet(m.id, m.home, m.homeOdds)}
+                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
+              >
+                <div className="text-xs">Home</div>
+                <div className="text-lg font-bold">{m.homeOdds}</div>
+              </button>
+
+              <button
+                onClick={() => bet(m.id, 'Draw', m.drawOdds)}
+                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
+              >
+                <div className="text-xs">Draw</div>
+                <div className="text-lg font-bold">{m.drawOdds}</div>
+              </button>
+
+              <button
+                onClick={() => bet(m.id, m.away, m.awayOdds)}
+                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
+              >
+                <div className="text-xs">Away</div>
+                <div className="text-lg font-bold">{m.awayOdds}</div>
+              </button>
+            </div>
+
+            <input
+              type="number"
+              value={bets[m.id] || ''}
+              onChange={e => setBets({ ...bets, [m.id]: e.target.value })}
+              placeholder="Bet amount (₦)"
+              className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white focus:outline-none focus:border-yellow-500"
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
