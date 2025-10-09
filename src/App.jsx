@@ -348,7 +348,14 @@ const Dashboard = ({ user, onLogout }) => {
     </div>
   );
 };
-
+// Matches
+const Matches = ({ data, updateData }) => {
+  return (
+    <div className="text-yellow-400 text-2xl font-bold">
+      Matches Page Placeholder ⚽🔥
+    </div>
+  );
+};
 // Wallet
 const Wallet = ({ data, updateData }) => {
   const [showTransfer, setShowTransfer] = useState(false);
