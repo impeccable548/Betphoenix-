@@ -364,69 +364,304 @@ const Dashboard = ({ user, onLogout }) => {
 };
 // Matches
 const Matches = ({ data, updateData }) => {
-  const [matches, setMatches] = useState([]);
-  const [bets, setBets] = useState({});
-  const [notif, setNotif] = useState(null);
+const [matches, setMatches] = useState([]);
+const [bets, setBets] = useState({});
+const [notif, setNotif] = useState(null);
 
-  useEffect(() => {
-    const teamsList = [
-      'Man United', 'Liverpool', 'Real Madrid', 'Barcelona', 'Bayern', 'Dortmund',
-      'Chelsea', 'Arsenal', 'PSG', 'Marseille', 'Juventus', 'Milan',
-      'Man City', 'Tottenham', 'Inter', 'Napoli', 'Atletico', 'Sevilla', 'Leicester', 'Everton'
-    ];
+useEffect(() => {
+const teamsList = [
+'Man United', 'Liverpool', 'Real Madrid', 'Barcelona', 'Bayern', 'Dortmund',
+'Chelsea', 'Arsenal', 'PSG', 'Marseille', 'Juventus', 'Milan',
+'Man City', 'Tottenham', 'Inter', 'Napoli', 'Atletico', 'Sevilla', 'Leicester', 'Everton'
+];
 
-    const shuffledTeams = [...teamsList].sort(() => 0.5 - Math.random());
-    const m = [];
-    for (let i = 0; i < 20; i += 2) {
-      m.push({
-        id: i / 2,
-        home: shuffledTeams[i],
-        away: shuffledTeams[i + 1],
-        homeOdds: (1.5 + Math.random()).toFixed(2),
-        awayOdds: (1.5 + Math.random()).toFixed(2),
-        drawOdds: (2.5 + Math.random()).toFixed(2),
-      });
-    }
-    setMatches(m);
+// Shuffle teams  
+const shuffledTeams = [...teamsList].sort(() => 0.5 - Math.random());  
 
-    const interval = setInterval(() => {
-      setMatches(prev =>
-        prev.map(match => {
-          const updateOdd = odd =>
-            (parseFloat(odd) + (Math.random() - 0.5) * 0.1).toFixed(2);
-          return {
-            ...match,
-            homeOdds: updateOdd(match.homeOdds),
-            awayOdds: updateOdd(match.awayOdds),
-            drawOdds: updateOdd(match.drawOdds),
-          };
-        })
-      );
-    }, 5000);
+// Pair teams into 10 matches  
+const m = [];  
+for (let i = 0; i < 20; i += 2) {  
+  m.push({  
+    id: i / 2,  
+    home: shuffledTeams[i],  
+    away: shuffledTeams[i + 1],  
+    homeOdds: (1.5 + Math.random()).toFixed(2),  
+    awayOdds: (1.5 + Math.random()).toFixed(2),  
+    drawOdds: (2.5 + Math.random()).toFixed(2),  
+  });  
+}  
 
-    return () => clearInterval(interval);
-  }, []);
+setMatches(m);  
 
-  const bet = (id, team, odds) => {
-    const amt = parseFloat(bets[id] || 0);
-    const safeBalance = isNaN(data.balance) ? 0 : data.balance;
+// Update odds every 5 seconds  
+const interval = setInterval(() => {  
+  setMatches(prev =>  
+    prev.map(match => {  
+      const updateOdd = odd =>  
+        (parseFloat(odd) + (Math.random() - 0.5) * 0.1).toFixed(2);  
+      return {  
+        ...match,  
+        homeOdds: updateOdd(match.homeOdds),  
+        awayOdds: updateOdd(match.awayOdds),  
+        drawOdds: updateOdd(match.drawOdds),  
+      };  
+    })  
+  );  
+}, 5000);  
 
-    if (!amt || amt <= 0 || amt > safeBalance) {
-      setNotif({ msg: 'Invalid amount', type: 'error' });
-      setTimeout(() => setNotif(null), 2000);
+return () => clearInterval(interval);
+
+}, []);
+
+const bet = (id, team, odds) => {
+const amt = parseFloat(bets[id] || 0);
+const balance = parseFloat(data?.balance) || 0;
+
+if (!amt || amt <= 0 || amt > balance) {  
+  setNotif({ msg: 'Invalid amount or insufficient balance', type: 'error' });  
+  setTimeout(() => setNotif(null), 2000);  
+  return;  
+}  
+
+const win = Math.random() < 1 / parseFloat(odds);  
+const payout = amt * parseFloat(odds);  
+const newBal = win ? balance + payout - amt : balance - amt;  
+
+const rec = {  
+  id: Date.now(),  
+  team,  
+  amt,  
+  odds: parseFloat(odds),  
+  result: win ? 'Won' : 'Lost',  
+  payout: win ? payout : 0,  
+  time: new Date().toLocaleString(),  
+};  
+
+updateData({  
+  ...data,  
+  balance: newBal,  
+  history: [rec, ...(data.history || [])],  
+  transactions: [rec, ...(data.transactions || [])],  
+});  
+
+setBets({ ...bets, [id]: '' });  
+setNotif({  
+  msg: win ? `Won ₦${payout.toFixed(2)}! 🎉` : `Lost ₦${amt.toFixed(2)} 😢`,  
+  type: win ? 'success' : 'error',  
+});  
+setTimeout(() => setNotif(null), 2000);
+
+};
+
+return (
+<div>
+{notif && (
+<div
+className={fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${   notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'   } text-white}
+>
+{notif.msg}
+</div>
+)}
+
+<h2 className="text-3xl font-bold mb-6 text-yellow-400">Live Matches</h2>  
+
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">  
+    {matches.map(m => (  
+      <div  
+        key={m.id}  
+        className="bg-gradient-to-br from-purple-900/50 to-black border border-yellow-500/30 rounded-xl p-6"  
+      >  
+        <div className="flex justify-between items-center mb-4">  
+          <span className="text-xl font-bold">{m.home}</span>  
+          <span className="text-gray-500">VS</span>  
+          <span className="text-xl font-bold">{m.away}</span>  
+        </div>  
+
+        <div className="grid grid-cols-3 gap-3 mb-4">  
+          <button  
+            onClick={() => bet(m.id, m.home, m.homeOdds)}  
+            className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"  
+          >  
+            <div className="text-xs">Home</div>  
+            <div className="text-lg font-bold">{m.homeOdds}</div>  
+          </button>  
+
+          <button  
+            onClick={() => bet(m.id, 'Draw', m.drawOdds)}  
+            className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"  
+          >  
+            <div className="text-xs">Draw</div>  
+            <div className="text-lg font-bold">{m.drawOdds}</div>  
+          </button>  
+
+          <button  
+            onClick={() => bet(m.id, m.away, m.awayOdds)}  
+            className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"  
+          >  
+            <div className="text-xs">Away</div>  
+            <div className="text-lg font-bold">{m.awayOdds}</div>  
+          </button>  
+        </div>  
+
+        <input  
+          type="number"  
+          value={bets[m.id] || ''}  
+          onChange={e => setBets({ ...bets, [m.id]: e.target.value })}  
+          placeholder="Bet amount (₦)"  
+          className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white focus:outline-none focus:border-yellow-500"  
+        />  
+      </div>  
+    ))}  
+  </div>  
+</div>
+
+);
+};
+
+// Wallet
+const Wallet = ({ data, updateData }) => {
+const [showTransfer, setShowTransfer] = useState(false);
+const [showFund, setShowFund] = useState(false);
+const [transfer, setTransfer] = useState({ bank: '', account: '', amt: '' });
+const [fund, setFund] = useState({ bank: '', amt: '' });
+
+const banks = ['GTBank', 'First Bank', 'Access Bank', 'UBA', 'Zenith', 'Fidelity', 'Union Bank', 'Sterling', 'Stanbic', 'Wema'];
+const balance = Number.isFinite(parseFloat(data?.balance)) ? parseFloat(data.balance) : 0;
+
+const wins = (data.history || []).filter(h => h.result === 'Won').length;
+const losses = (data.history || []).filter(h => h.result === 'Lost').length;
+
+const doTransfer = () => {
+const amt = parseFloat(transfer.amt);
+const fee = amt * 0.01;
+if (!transfer.bank || !transfer.account || amt <= 0 || amt + fee > balance) {
+alert('Invalid or insufficient balance');
+return;
+}
+const rec = { id: Date.now(), type: 'withdrawal', bank: transfer.bank, amt, fee, time: new Date().toLocaleString() };
+updateData({ ...data, balance: balance - amt - fee, transactions: [rec, ...(data.transactions || [])] });
+setTransfer({ bank: '', account: '', amt: '' });
+setShowTransfer(false);
+alert(₦${amt.toFixed(2)} transferred!);
+};
+
+const doFund = () => {
+const amt = parseFloat(fund.amt);
+if (!fund.bank || amt <= 0) {
+alert('Invalid');
+return;
+}
+const rec = { id: Date.now(), type: 'deposit', bank: fund.bank, amt, time: new Date().toLocaleString() };
+updateData({ ...data, balance: balance + amt, transactions: [rec, ...(data.transactions || [])] });
+setFund({ bank: '', amt: '' });
+setShowFund(false);
+alert(₦${amt.toFixed(2)} funded!);
+};
+
+return (
+<div>
+<h2 className="text-3xl font-bold mb-6 text-yellow-400">Wallet</h2>
+<div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl p-8 mb-6">
+<p className="text-black/70 text-sm mb-2">Balance</p>
+<h3 className="text-5xl font-bold text-black mb-4">₦{balance.toFixed(2)}</h3>
+<div className="flex gap-4">
+<button onClick={() => setShowTransfer(true)} className="flex-1 px-4 py-2 bg-black text-yellow-500 rounded-lg font-bold">Transfer</button>
+<button onClick={() => setShowFund(true)} className="flex-1 px-4 py-2 bg-black text-yellow-500 rounded-lg font-bold">Fund</button>
+</div>
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">  
+    <div className="bg-gradient-to-br from-green-900/50 to-black border border-green-500/30 rounded-xl p-6">  
+      <h4 className="text-green-400 mb-2">Wins</h4>  
+      <p className="text-4xl font-bold text-green-500">{wins}</p>  
+    </div>  
+    <div className="bg-gradient-to-br from-red-900/50 to-black border border-red-500/30 rounded-xl p-6">  
+      <h4 className="text-red-400 mb-2">Losses</h4>  
+      <p className="text-4xl font-bold text-red-500">{losses}</p>  
+    </div>  
+    <div className="bg-gradient-to-br from-purple-900/50 to-black border border-purple-500/30 rounded-xl p-6">  
+      <h4 className="text-purple-400 mb-2">Total Bets</h4>  
+      <p className="text-4xl font-bold text-purple-500">{(data.history || []).length}</p>  
+    </div>  
+  </div>  
+
+  {/* Transfer & Fund modals kept same but now safer */}  
+  {showTransfer && (  
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">  
+      <div className="bg-gradient-to-br from-purple-900/90 to-black border border-yellow-500/30 rounded-xl p-8 max-w-md w-full">  
+        <h3 className="text-2xl font-bold text-yellow-400 mb-6">Transfer Money</h3>  
+        <div className="space-y-4">  
+          <select value={transfer.bank} onChange={(e) => setTransfer({...transfer, bank: e.target.value})} className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white">  
+            <option value="">Select Bank</option>  
+            {banks.map(b => <option key={b} value={b}>{b}</option>)}  
+          </select>  
+          <input type="text" value={transfer.account} onChange={(e) => setTransfer({...transfer, account: e.target.value})} placeholder="Account Number" className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white" />  
+          <input type="number" value={transfer.amt} onChange={(e) => setTransfer({...transfer, amt: e.target.value})} placeholder="Amount" className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white" />  
+          {transfer.amt && <p className="text-sm text-gray-400">Fee: ₦{(parseFloat(transfer.amt) * 0.01).toFixed(2)}</p>}  
+          <div className="flex gap-3">  
+            <button onClick={doTransfer} className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black rounded-lg font-bold">Transfer</button>  
+            <button onClick={() => setShowTransfer(false)} className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-bold">Cancel</button>  
+          </div>  
+        </div>  
+      </div>  
+    </div>  
+  )}  
+
+  {showFund && (  
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">  
+      <div className="bg-gradient-to-br from-purple-900/90 to-black border border-yellow-500/30 rounded-xl p-8 max-w-md w-full">  
+        <h3 className="text-2xl font-bold text-yellow-400 mb-6">Fund Account</h3>  
+        <div className="space-y-4">  
+          <select value={fund.bank} onChange={(e) => setFund({...fund, bank: e.target.value})} className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white">  
+            <option value="">Select Bank</option>  
+            {banks.map(b => <option key={b} value={b}>{b}</option>)}  
+          </select>  
+          <input type="number" value={fund.amt} onChange={(e) => setFund({...fund, amt: e.target.value})} placeholder="Amount" className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white" />  
+          <div className="flex gap-3">  
+            <button onClick={doFund} className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black rounded-lg font-bold">Fund</button>  
+            <button onClick={() => setShowFund(false)} className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-bold">Cancel</button>  
+          </div>  
+        </div>  
+      </div>  
+    </div>  
+  )}  
+</div>
+
+);
+};
+// Games (final clean version)
+const Games = ({ data, updateData }) => {
+  const [selected, setSelected] = useState(null);
+  const [bet, setBet] = useState('');
+  const [result, setResult] = useState(null);
+  const balance = Number.isFinite(parseFloat(data?.balance)) ? parseFloat(data.balance) : 0;
+
+  const games = [
+    { id: 1, name: 'Dice Roll', icon: '🎲', chance: 0.45 },
+    { id: 2, name: 'Coin Flip', icon: '🪙', chance: 0.5 },
+    { id: 3, name: 'Lucky 7', icon: '🎰', chance: 0.3 },
+    { id: 4, name: 'Card Draw', icon: '🃏', chance: 0.4 },
+    { id: 5, name: 'Spin Wheel', icon: '🎡', chance: 0.35 }
+  ];
+
+  const play = (g) => {
+    const amt = parseFloat(bet);
+    if (!amt || amt <= 0 || amt > balance) {
+      alert('Invalid amount or insufficient balance');
       return;
     }
 
-    const win = Math.random() < 1 / parseFloat(odds);
-    const payout = amt * parseFloat(odds);
-    const newBal = win ? safeBalance + payout - amt : safeBalance - amt;
+    const win = Math.random() < g.chance;
+    const payout = win ? amt * 2 : 0;
+    const newBal = balance - amt + payout;
+
     const rec = {
       id: Date.now(),
-      team,
+      type: 'game',
+      game: g.name,
       amt,
-      odds: parseFloat(odds),
       result: win ? 'Won' : 'Lost',
-      payout: win ? payout : 0,
+      payout,
       time: new Date().toLocaleString(),
     };
 
@@ -437,229 +672,99 @@ const Matches = ({ data, updateData }) => {
       transactions: [rec, ...(data.transactions || [])],
     });
 
-    setBets({ ...bets, [id]: '' });
-    setNotif({
-      msg: win ? `Won ₦${payout.toFixed(2)}! 🎉` : `Lost ₦${amt.toFixed(2)} 😢`,
-      type: win ? 'success' : 'error',
-    });
-    setTimeout(() => setNotif(null), 2000);
+    setResult({ win, payout, game: g.name, amt });
+    setBet('');
+    setTimeout(() => {
+      setResult(null);
+      setSelected(null);
+    }, 3000);
   };
 
   return (
     <div>
-      {notif && (
-        <div
-          className={`fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${
-            notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          } text-white`}
-        >
-          {notif.msg}
-        </div>
-      )}
+      <h2 className="text-3xl font-bold mb-6 text-yellow-400">Casino Games</h2>
 
-      <h2 className="text-3xl font-bold mb-6 text-yellow-400">Live Matches</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {matches.map(m => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {games.map((g) => (
           <div
-            key={m.id}
-            className="bg-gradient-to-br from-purple-900/50 to-black border border-yellow-500/30 rounded-xl p-6"
+            key={g.id}
+            onClick={() => setSelected(g)}
+            className="bg-gradient-to-br from-purple-900/50 to-black border border-yellow-500/30 rounded-xl p-8 hover:scale-105 transition cursor-pointer text-center"
           >
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-xl font-bold">{m.home}</span>
-              <span className="text-gray-500">VS</span>
-              <span className="text-xl font-bold">{m.away}</span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <button
-                onClick={() => bet(m.id, m.home, m.homeOdds)}
-                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
-              >
-                <div className="text-xs">Home</div>
-                <div className="text-lg font-bold">{m.homeOdds}</div>
-              </button>
-              <button
-                onClick={() => bet(m.id, 'Draw', m.drawOdds)}
-                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
-              >
-                <div className="text-xs">Draw</div>
-                <div className="text-lg font-bold">{m.drawOdds}</div>
-              </button>
-              <button
-                onClick={() => bet(m.id, m.away, m.awayOdds)}
-                className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-3 hover:bg-yellow-500 hover:text-black transition"
-              >
-                <div className="text-xs">Away</div>
-                <div className="text-lg font-bold">{m.awayOdds}</div>
-              </button>
-            </div>
-
-            <input
-              type="number"
-              value={bets[m.id] || ''}
-              onChange={e => setBets({ ...bets, [m.id]: e.target.value })}
-              placeholder="Bet amount (₦)"
-              className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white focus:outline-none focus:border-yellow-500"
-            />
+            <div className="text-6xl mb-4">{g.icon}</div>
+            <h3 className="text-2xl font-bold text-yellow-400 mb-2">{g.name}</h3>
+            <p className="text-gray-400">Win Chance: {(g.chance * 100).toFixed(0)}%</p>
           </div>
         ))}
       </div>
-    </div>
-  );
-};
 
-// Wallet
-const Wallet = ({ data, updateData }) => {
-  const [showTransfer, setShowTransfer] = useState(false);
-  const [showFund, setShowFund] = useState(false);
-  const [transfer, setTransfer] = useState({ bank: '', account: '', amt: '' });
-  const [fund, setFund] = useState({ bank: '', amt: '' });
+      {/* Play Modal */}
+      {selected && !result && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-purple-900/90 to-black border border-yellow-500/30 rounded-xl p-8 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">{selected.icon}</div>
+              <h3 className="text-2xl font-bold text-yellow-400">{selected.name}</h3>
+              <p className="text-gray-400">Win Chance: {(selected.chance * 100).toFixed(0)}%</p>
+            </div>
 
-  const banks = ['GTBank', 'First Bank', 'Access Bank', 'UBA', 'Zenith', 'Fidelity', 'Union Bank', 'Sterling', 'Stanbic', 'Wema'];
-  const safeBalance = isNaN(data.balance) ? 0 : data.balance;
-
-  const doTransfer = () => {
-    const amt = parseFloat(transfer.amt);
-    const fee = amt * 0.01;
-    if (!transfer.bank || !transfer.account || amt <= 0 || amt + fee > safeBalance) { alert('Invalid'); return; }
-    const rec = { id: Date.now(), type: 'withdrawal', bank: transfer.bank, amt, fee, time: new Date().toLocaleString() };
-    updateData({ ...data, balance: safeBalance - amt - fee, transactions: [rec, ...(data.transactions || [])] });
-    setTransfer({ bank: '', account: '', amt: '' });
-    setShowTransfer(false);
-    alert(`₦${amt} transferred!`);
-  };
-
-  const doFund = () => {
-    const amt = parseFloat(fund.amt);
-    if (!fund.bank || amt <= 0) { alert('Invalid'); return; }
-    const rec = { id: Date.now(), type: 'deposit', bank: fund.bank, amt, time: new Date().toLocaleString() };
-    updateData({ ...data, balance: safeBalance + amt, transactions: [rec, ...(data.transactions || [])] });
-    setFund({ bank: '', amt: '' });
-    setShowFund(false);
-    alert(`₦${amt} funded!`);
-  };
-
-  return (
-    <div>
-      <h2 className="text-3xl font-bold mb-6 text-yellow-400">Wallet</h2>
-      <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl p-8 mb-6">
-        <p className="text-black/70 text-sm mb-2">Balance</p>
-        <h3 className="text-5xl font-bold text-black mb-4">₦{safeBalance.toFixed(2)}</h3>
-        <div className="flex gap-4">
-          <button onClick={() => setShowTransfer(true)} className="flex-1 px-4 py-2 bg-black text-yellow-500 rounded-lg font-bold">Transfer</button>
-          <button onClick={() => setShowFund(true)} className="flex-1 px-4 py-2 bg-black text-yellow-500 rounded-lg font-bold">Fund</button>
-        </div>
-      </div>
-
-      {showTransfer && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl p-6 w-80">
-            <h3 className="text-yellow-400 font-bold text-xl mb-4">Transfer Funds</h3>
-            <select value={transfer.bank} onChange={e => setTransfer({ ...transfer, bank: e.target.value })} className="w-full mb-3 px-3 py-2 rounded bg-black border border-yellow-500/30 text-white">
-              <option value="">Select Bank</option>
-              {banks.map(b => <option key={b}>{b}</option>)}
-            </select>
-            <input value={transfer.account} onChange={e => setTransfer({ ...transfer, account: e.target.value })} placeholder="Account Number" className="w-full mb-3 px-3 py-2 rounded bg-black border border-yellow-500/30 text-white" />
-            <input type="number" value={transfer.amt} onChange={e => setTransfer({ ...transfer, amt: e.target.value })} placeholder="Amount" className="w-full mb-4 px-3 py-2 rounded bg-black border border-yellow-500/30 text-white" />
-            <button onClick={doTransfer} className="w-full bg-yellow-500 text-black rounded-lg py-2 font-bold">Confirm</button>
-            <button onClick={() => setShowTransfer(false)} className="w-full mt-2 bg-gray-700 text-yellow-500 rounded-lg py-2 font-bold">Cancel</button>
+            <div className="space-y-4">
+              <input
+                type="number"
+                value={bet}
+                onChange={(e) => setBet(e.target.value)}
+                placeholder="Enter bet amount (₦)"
+                className="w-full px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white focus:outline-none focus:border-yellow-500"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => play(selected)}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black rounded-lg font-bold"
+                >
+                  Play
+                </button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-bold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {showFund && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl p-6 w-80">
-            <h3 className="text-yellow-400 font-bold text-xl mb-4">Fund Wallet</h3>
-            <select value={fund.bank} onChange={e => setFund({ ...fund, bank: e.target.value })} className="w-full mb-3 px-3 py-2 rounded bg-black border border-yellow-500/30 text-white">
-              <option value="">Select Bank</option>
-              {banks.map(b => <option key={b}>{b}</option>)}
-            </select>
-            <input type="number" value={fund.amt} onChange={e => setFund({ ...fund, amt: e.target.value })} placeholder="Amount" className="w-full mb-4 px-3 py-2 rounded bg-black border border-yellow-500/30 text-white" />
-            <button onClick={doFund} className="w-full bg-yellow-500 text-black rounded-lg py-2 font-bold">Confirm</button>
-            <button onClick={() => setShowFund(false)} className="w-full mt-2 bg-gray-700 text-yellow-500 rounded-lg py-2 font-bold">Cancel</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Games
-const Games = ({ data, updateData }) => {
-  const [amount, setAmount] = useState('');
-  const [notif, setNotif] = useState(null);
-  const safeBalance = isNaN(data.balance) ? 0 : data.balance;
-
-  const playGame = (multiplier) => {
-    const betAmt = parseFloat(amount);
-    if (!betAmt || betAmt <= 0 || betAmt > safeBalance) {
-      setNotif({ msg: 'Invalid bet amount ⚠️', type: 'error' });
-      setTimeout(() => setNotif(null), 2000);
-      return;
-    }
-
-    const win = Math.random() < 0.5;
-    const payout = win ? betAmt * multiplier : 0;
-    const newBalance = win ? safeBalance + payout - betAmt : safeBalance - betAmt;
-
-    const rec = {
-      id: Date.now(),
-      type: 'game',
-      amt: betAmt,
-      multiplier,
-      result: win ? 'Won' : 'Lost',
-      payout,
-      time: new Date().toLocaleString(),
-    };
-
-    updateData({
-      ...data,
-      balance: newBalance,
-      history: [rec, ...(data.history || [])],
-    });
-
-    setAmount('');
-    setNotif({
-      msg: win ? `You won ₦${payout.toFixed(2)} 🎉` : `You lost ₦${betAmt.toFixed(2)} 😢`,
-      type: win ? 'success' : 'error',
-    });
-    setTimeout(() => setNotif(null), 2000);
-  };
-
-  return (
-    <div>
-      {notif && (
-        <div className={`fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${
-          notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        } text-white`}>
-          {notif.msg}
-        </div>
-      )}
-
-      <h2 className="text-3xl font-bold mb-6 text-yellow-400">Quick Games 🎮</h2>
-      <input
-        type="number"
-        value={amount}
-        onChange={e => setAmount(e.target.value)}
-        placeholder="Enter bet amount (₦)"
-        className="w-full mb-6 px-4 py-3 bg-black border border-yellow-500/30 rounded-lg text-white focus:outline-none focus:border-yellow-500"
-      />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        {[1.5, 2, 3].map((mult, i) => (
-          <button
-            key={i}
-            onClick={() => playGame(mult)}
-            className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 rounded-lg p-6 hover:bg-yellow-500 hover:text-black transition text-xl font-bold"
+      {/* Result Modal */}
+      {result && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div
+            className={`bg-gradient-to-br ${
+              result.win
+                ? 'from-green-900/80 to-black border-green-500/30'
+                : 'from-red-900/80 to-black border-red-500/30'
+            } rounded-xl p-8 max-w-md w-full text-center`}
           >
-            x{mult} Multiplier
-          </button>
-        ))}
-      </div>
+            <div className="text-6xl mb-4">{result.win ? '🏆' : '💀'}</div>
+            <h3
+              className={`text-3xl font-bold mb-4 ${
+                result.win ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              {result.win ? 'You Won!' : 'You Lost!'}
+            </h3>
+            <p className="text-gray-300 mb-2">Game: {result.game}</p>
+            <p className="text-gray-300 mb-2">Bet: ₦{result.amt.toFixed(2)}</p>
+            <p className="text-yellow-400 text-2xl font-bold">
+              {result.win ? `+₦${result.payout.toFixed(2)}` : 'Better luck next time 💔'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 // History
 const History = ({ data }) => {
   return (
