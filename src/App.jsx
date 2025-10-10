@@ -453,11 +453,13 @@ setTimeout(() => setNotif(null), 2000);
 return (
 <div>
 {notif && (
-<div
-className={fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${   notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'   } text-white}
->
-{notif.msg}
-</div>
+  <div
+    className={`fixed top-20 right-4 z-50 px-6 py-4 rounded-lg ${
+      notif.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white`}
+  >
+    {notif.msg}
+  </div>
 )}
 
 <h2 className="text-3xl font-bold mb-6 text-yellow-400">Live Matches</h2>  
